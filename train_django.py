@@ -3,6 +3,8 @@ from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
 
 from text_generation import make_lstm_trainset, generate
+from utils import save_model, logger
+
 
 print('Build model...')
 chars = '\n !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
@@ -35,7 +37,11 @@ seed = """# -*- coding: utf-8 -*-
 gen = make_lstm_trainset('data/all_the_django.py', chars)
 for iteration in range(1000):
     model.fit_generator(gen, samples_per_epoch=10**6, nb_epoch=1)
-    save_model(model, "data/django/")
+    save_path = "models/django/epoch_%s" % iteration
+    logger.info("done fitting epoch %s  Now saving mode to %s" % (iteration, save_path))
+    save_model(model, save_path)
+    logger.info("saved model, now generating a sample")
     generate(model, seed, 0.5, 500)
+    logger.info("done generating sample, on to next iteration")
 #'/home/ubuntu/.keras/datasets/nietzsche.txt'
 #'data/all_the_django.py'

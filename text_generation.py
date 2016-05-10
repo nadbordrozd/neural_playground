@@ -18,11 +18,10 @@ import numpy as np
 import random
 import sys
 from unidecode import unidecode
-from utils import save_model
+from utils import save_model, logger
 
 #path = get_file('nietzsche.txt', origin="https://s3.amazonaws.com/text-datasets/nietzsche.txt")
-def make_lstm_trainset(path, chars, maxlen=40, step=3, ascify=True):
-    batch_size = 128
+def make_lstm_trainset(path, chars, maxlen=40, step=3, ascify=True, batch_size=1024):
     while True:
         with open(path) as f:
             text = f.read().decode("utf-8")
@@ -44,9 +43,10 @@ def make_lstm_trainset(path, chars, maxlen=40, step=3, ascify=True):
             for i in range(max(0, batch_start - maxlen), min(batch_start + batch_size, len(text) - maxlen), step):
                 sentences.append(text[i: i + maxlen])
                 next_chars.append(text[i + maxlen])
-            print('nb sequences:', len(sentences))
+            #print('nb sequences:', len(sentences))
+            logger.info('nb sequences: %s. Vectorization' % len(sentences))
 
-            print('Vectorization...')
+            #print('Vectorization...')
             X = np.zeros((len(sentences), maxlen, len(chars)), dtype=np.bool)
             y = np.zeros((len(sentences), len(chars)), dtype=np.bool)
             for i, sentence in enumerate(sentences):
