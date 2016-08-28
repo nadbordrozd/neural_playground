@@ -1,0 +1,7 @@
+futures==3.0.5
+google-api-python-client==1.5.2
+h5py==2.6.0
+Keras==1.0.7
+numpy==1.11.0
+Unidecode==0.4.19
+
