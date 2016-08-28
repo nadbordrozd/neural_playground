@@ -1,0 +1,2 @@
+OUTPUT_PATH=$1
+curl 'https://www.cs.cmu.edu/~./enron/enron_mail_20150507.tgz' -H 'Accept-Encoding: gzip, deflate, sdch, br' -H 'Accept-Language: en-US,en;q=0.8' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' -H 'Referer: https://www.cs.cmu.edu/~./enron/' -H 'Cookie: SHIBLOCATION=scsweb' -H 'Connection: keep-alive' --compressed > $OUTPUT_PATH
