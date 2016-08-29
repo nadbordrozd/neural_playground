@@ -1,6 +1,9 @@
-from keras.models import load_model as keras_load_model
+import logging
 import os
+from glob import glob
 import json
+
+from keras.models import load_model as keras_load_model
 
 LOG_PATH = "train_log.log"
 BULK = 'model.'
@@ -32,7 +35,18 @@ def load_model(directory):
     model.additional_config = config
     return model
 
-import logging
+
+def load_latest_model(directory):
+    paths = glob(os.path.join(directory, '*'))
+    if paths:
+        path = max(paths)
+        epoch = int(path[-5:])
+        model = load_model(path)
+        return model, epoch
+    else:
+        return None, None
+
+
 # create logger
 logging.basicConfig(filename=LOG_PATH, level=logging.DEBUG,
                     format="%(asctime)s; %(levelname)s;  %(message)s")

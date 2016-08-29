@@ -14,7 +14,7 @@ import os
 import numpy as np
 import sys
 from unidecode import unidecode
-from utils import save_model, logger
+from utils import save_model, logger, load_latest_model
 
 # we limit ourselves to the following chars.
 # Uppercase letters will be represented by prefixing them with a U
@@ -60,7 +60,7 @@ def make_lstm_trainset(path, seqlen=40, step=3, batch_size=1024):
         text = encode(text)
         # yield seed
         yield text[:seqlen]
-        logger.info('corpus length:', len(text))
+        logger.info('corpus length: %s' % len(text))
 
         # cut the text in semi-redundant sequences of maxlen characters
         batch_start = 0
@@ -68,11 +68,11 @@ def make_lstm_trainset(path, seqlen=40, step=3, batch_size=1024):
             # add sentences that fall on the boundary between batches
             sentences = []
             next_chars = []
-            for i in range(max(0, batch_start - seqlen), min(batch_start + batch_size, len(text) - maxlen), step):
+
+            for i in range(max(0, batch_start - seqlen),
+                           min(batch_start + batch_size, len(text) - seqlen), step):
                 sentences.append(text[i: i + seqlen])
                 next_chars.append(text[i + seqlen])
-
-            logger.info('nb sequences: %s. Vectorization' % len(sentences))
 
             X = np.zeros((len(sentences), seqlen, len(chars)), dtype=np.bool)
             y = np.zeros((len(sentences), len(chars)), dtype=np.bool)
@@ -82,6 +82,38 @@ def make_lstm_trainset(path, seqlen=40, step=3, batch_size=1024):
                 y[i, char_indices[next_chars[i]]] = 1
             yield X, y
             batch_start += batch_size
+
+
+def generate_text_slices(path, seqlen=40, step=3):
+    with open(path) as f:
+        text = f.read().decode("utf-8")
+
+    # limit the charset, encode uppercase etc
+    text = encode(text)
+    logger.info('corpus length: %s' % len(text))
+    yield len(text), text[:seqlen]
+
+    while True:
+        for i in range(0, len(text) - seqlen, step):
+            sentence = text[i: i + seqlen]
+            next_char = text[i + seqlen]
+            yield sentence, next_char
+
+def generate_arrays_from_file(path, seqlen=40, step=3, batch_size=10):
+    slices = generate_text_slices(path, seqlen, step)
+    text_len, seed = slices.next()
+    samples = (text_len - seqlen + step - 1)/step
+    yield samples, seed
+
+    while True:
+        X = np.zeros((batch_size, seqlen, len(chars)), dtype=np.bool)
+        y = np.zeros((batch_size, len(chars)), dtype=np.bool)
+        for i in range(batch_size):
+            sentence, next_char = slices.next()
+            for t, char in enumerate(sentence):
+                X[i, t, char_indices[char]] = 1
+            y[i, char_indices[next_char]] = 1
+        yield X, y
 
 
 def sample(a, temperature=1.0):
@@ -126,12 +158,35 @@ def generate_and_print(model, seed, diversity, n):
     return full_text
 
 
-def train_lstm(model, input_path, save_dir, iters=1000, save_every=5):
+def train_lstm(model, input_path, validation_path, save_dir, step=3, batch_size=1024,
+               iters=1000, from_checkpoint=False, save_every=5):
     _, seqlen, _ = model.input_shape
-    gen = make_lstm_trainset(input_path, seqlen=seqlen)
-    seed = gen.next()
-    for epoch in range(1, iters + 1):
-        model.fit_generator(gen, samples_per_epoch=10**6, nb_epoch=1)
+    train_gen = generate_arrays_from_file(input_path, seqlen=seqlen,
+                                    step=step, batch_size=batch_size)
+    samples, seed = train_gen.next()
+
+    if validation_path:
+        val_gen = generate_arrays_from_file(
+            validation_path, seqlen=seqlen, step=step, batch_size=batch_size)
+        val_samples, _ = val_gen.next()
+    logger.info('samples per epoch %s' % samples)
+    print 'samples per epoch %s' % samples
+    if from_checkpoint:
+        model_, last_epoch = load_latest_model(save_dir)
+        model = model_ or model
+    last_epoch = last_epoch or 0
+    for epoch in range(last_epoch + 1, last_epoch + iters + 1):
+        if validation_path:
+            hist = model.fit_generator(
+                train_gen,
+                validation_data=val_gen,
+                nb_val_samples=val_samples,
+                samples_per_epoch=samples, nb_epoch=1)
+        else:
+            hist = model.fit_generator(
+                train_gen, samples_per_epoch=samples, nb_epoch=1)
+        print hist.history
+        print 'done fitting epoch %s' % epoch
         if epoch % save_every == 0:
             save_path = os.path.join(save_dir, ('epoch_%s' % ('%s' % epoch).zfill(5)))
             logger.info("done fitting epoch %s  Now saving mode to %s" % (epoch, save_path))
