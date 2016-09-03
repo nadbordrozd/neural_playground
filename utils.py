@@ -3,7 +3,6 @@ import os
 from glob import glob
 import json
 
-from keras.models import load_model as keras_load_model
 
 LOG_PATH = "train_log.log"
 BULK = 'model.'
@@ -28,6 +27,7 @@ def save_model(model,  directory, overwrite=False):
 
 
 def load_model(directory):
+    from keras.models import load_model as keras_load_model
     model = keras_load_model(os.path.join(directory, BULK))
     with open(os.path.join(directory, CONFIG), "rb") as conf:
         config = json.load(conf)

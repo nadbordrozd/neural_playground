@@ -144,9 +144,12 @@ def generate(model, seed, diversity):
 
 
 def generate_and_print(model, seed, diversity, n):
+    sys.stdout.write('generating with seed: \n')
+    sys.stdout.write(''.join(decode(seed)))
+    sys.stdout.write('\n=================================\n')
+
     generator = decode(generate(model, seed, diversity))
     sys.stdout.write(''.join(decode(seed)))
-    sys.stdout.write('\ngenerated:\n')
 
     full_text = []
     for _ in range(n):
@@ -185,7 +188,8 @@ def train_lstm(model, input_path, validation_path, save_dir, step=3, batch_size=
         else:
             hist = model.fit_generator(
                 train_gen, samples_per_epoch=samples, nb_epoch=1)
-        print hist.history
+        print str(hist.history)
+        logger.info(str(hist))
         print 'done fitting epoch %s' % epoch
         if epoch % save_every == 0:
             save_path = os.path.join(save_dir, ('epoch_%s' % ('%s' % epoch).zfill(5)))
