@@ -3,27 +3,22 @@ import os
 from glob import glob
 import json
 
-
 LOG_PATH = "train_log.log"
 BULK = 'model.'
 CONFIG = "config.json"
-ARCHITECTURE = "architecture.json"
-WEIGHTS = "weights.h5"
 
 def make_sure_dir_exists(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
 
-def save_model(model,  directory, overwrite=False):
+def save_model(model,  directory):
     make_sure_dir_exists(directory)
     model.save(os.path.join(directory, BULK))
 
     config = model.additional_config if hasattr(model, "additional_config") else {}
     with open(os.path.join(directory, CONFIG), "wb") as out:
         out.write(json.dumps(config))
-
-    model.save_weights(os.path.join(directory, WEIGHTS), overwrite=overwrite)
 
 
 def load_model(directory):

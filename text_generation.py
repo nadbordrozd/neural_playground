@@ -1,23 +1,16 @@
 '''Based on Keras text generation example
 https://github.com/fchollet/keras/blob/master/examples/lstm_text_generation.py
-
-Example script to generate text from Nietzsche's writings.
-At least 20 epochs are required before the generated text
-starts sounding coherent.
-It is recommended to run this script on GPU, as recurrent
-networks are quite computationally intensive.
-If you try this script on new data, make sure your corpus
-has at least ~100k characters. ~1M is better.
 '''
 import os
 
 import numpy as np
 import sys
 from unidecode import unidecode
-from utils import save_model, logger, load_latest_model
+from utils import save_model, logger
 
 # we limit ourselves to the following chars.
 # Uppercase letters will be represented by prefixing them with a U
+# - a trick proposed by Zygmunt Zajac http://fastml.com/one-weird-trick-for-training-char-rnns/
 chars = '\n !"#$%&\'()*+,-./0123456789:;<=>?@[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~U'
 charset = set(chars)
 char_indices = dict((c, i) for i, c in enumerate(chars))
@@ -162,24 +155,22 @@ def generate_and_print(model, seed, diversity, n):
 
 
 def train_lstm(model, input_path, validation_path, save_dir, step=3, batch_size=1024,
-               iters=1000, from_checkpoint=False, save_every=5):
+               iters=1000, save_every=1):
     _, seqlen, _ = model.input_shape
     train_gen = generate_arrays_from_file(input_path, seqlen=seqlen,
                                     step=step, batch_size=batch_size)
     samples, seed = train_gen.next()
 
-    if validation_path:
-        val_gen = generate_arrays_from_file(
-            validation_path, seqlen=seqlen, step=step, batch_size=batch_size)
-        val_samples, _ = val_gen.next()
     logger.info('samples per epoch %s' % samples)
     print 'samples per epoch %s' % samples
-    if from_checkpoint:
-        model_, last_epoch = load_latest_model(save_dir)
-        model = model_ or model
-    last_epoch = last_epoch or 0
+    last_epoch = model.additional_config.get('last_epoch', 0)
+
     for epoch in range(last_epoch + 1, last_epoch + iters + 1):
         if validation_path:
+            val_gen = generate_arrays_from_file(
+                validation_path, seqlen=seqlen, step=step, batch_size=batch_size)
+            val_samples, _ = val_gen.next()
+
             hist = model.fit_generator(
                 train_gen,
                 validation_data=val_gen,
