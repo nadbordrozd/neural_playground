@@ -92,6 +92,7 @@ def generate_text_slices(path, seqlen=40, step=3):
             next_char = text[i + seqlen]
             yield sentence, next_char
 
+
 def generate_arrays_from_file(path, seqlen=40, step=3, batch_size=10):
     slices = generate_text_slices(path, seqlen, step)
     text_len, seed = slices.next()
@@ -151,7 +152,7 @@ def generate_and_print(model, seed, diversity, n):
         sys.stdout.flush()
         full_text.append(next_char)
 
-    return full_text
+    return ''.join(full_text)
 
 
 def train_lstm(model, input_path, validation_path, save_dir, step=3, batch_size=1024,
@@ -163,28 +164,33 @@ def train_lstm(model, input_path, validation_path, save_dir, step=3, batch_size=
 
     logger.info('samples per epoch %s' % samples)
     print 'samples per epoch %s' % samples
-    last_epoch = model.additional_config.get('last_epoch', 0)
+    last_epoch = model.metadata.get('epoch', 0)
 
     for epoch in range(last_epoch + 1, last_epoch + iters + 1):
-        if validation_path:
-            val_gen = generate_arrays_from_file(
-                validation_path, seqlen=seqlen, step=step, batch_size=batch_size)
-            val_samples, _ = val_gen.next()
+        val_gen = generate_arrays_from_file(
+            validation_path, seqlen=seqlen, step=step, batch_size=batch_size)
+        val_samples, _ = val_gen.next()
 
-            hist = model.fit_generator(
-                train_gen,
-                validation_data=val_gen,
-                nb_val_samples=val_samples,
-                samples_per_epoch=samples, nb_epoch=1)
-        else:
-            hist = model.fit_generator(
-                train_gen, samples_per_epoch=samples, nb_epoch=1)
-        print str(hist.history)
-        logger.info(str(hist))
+        hist = model.fit_generator(
+            train_gen,
+            validation_data=val_gen,
+            nb_val_samples=val_samples,
+            samples_per_epoch=samples, nb_epoch=1)
+
+        val_loss = hist.history.get('val_loss', [-1])[0]
+        loss = hist.history['loss'][0]
+        model.metadata['loss'].append(loss)
+        model.metadata['val_loss'].append(val_loss)
+        model.metadata['epoch'] = epoch
+
+        message = 'loss = %.4f   val_loss = %.4f' % (loss, val_loss)
+        print message
+        logger.info(message)
         print 'done fitting epoch %s' % epoch
         if epoch % save_every == 0:
             save_path = os.path.join(save_dir, ('epoch_%s' % ('%s' % epoch).zfill(5)))
             logger.info("done fitting epoch %s  Now saving mode to %s" % (epoch, save_path))
             save_model(model, save_path)
             logger.info("saved model, now generating a sample")
+
         generate_and_print(model, seed, 0.5, 1000)

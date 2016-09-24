@@ -8,11 +8,11 @@ A typical workflow consists of
 ### Getting the data
 Start with downloading some fun textual datasets to work with. Scripts in `getting_data` do exactly that. 
 ```bash
-getting_Data/hadoop.sh data/lots_of_java.java
+getting_data/hadoop.sh data/lots_of_java.java
 ```
 will clone the hadoop codebase from github, concatenate all the java files and put them in `data/lots_of_java.java`.
 ```bash
-getting_Data/sklearn.sh data/all_the_python.py
+getting_data/sklearn.sh data/all_the_python.py
 ```
 will do the same for scikit-learn. Other scripts follow the same interface and download the dataset of Enron emails (this is a big one!), collected novels of Jane Austen, scalaz codebase and so on. 
 
@@ -76,4 +76,4 @@ Finally, the fun part. To generate 10000 characters with the model we just train
     --out_file data/generated_flat_earth.txt
 ```
 
-Here the first 20 lines of the train file will e used as seed for the generator. Generated text will be put in `data/generated_flat_earth.txt` in addition to being printed to standard output one character at a time as it is being generated (fun to watch!).
+Here the first 20 lines of the train file will be used as seed for the generator. Generated text will be put in `data/generated_flat_earth.txt` in addition to being printed to standard output one character at a time as it is being generated (fun to watch!).

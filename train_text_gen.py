@@ -56,7 +56,7 @@ if model is None:
     model.add(Activation('softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam')
     epoch = 0
-    model.additional_config = {'last_epoch': 0}
+    model.metadata = {'epoch': 0, 'loss': [], 'val_loss': []}
 
 if args.train_test_path is None:
     train_path = args.train_path

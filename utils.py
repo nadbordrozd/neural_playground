@@ -5,7 +5,8 @@ import json
 
 LOG_PATH = "train_log.log"
 BULK = 'model.'
-CONFIG = "config.json"
+METADATA = "meta.json"
+
 
 def make_sure_dir_exists(directory):
     if not os.path.exists(directory):
@@ -16,18 +17,18 @@ def save_model(model,  directory):
     make_sure_dir_exists(directory)
     model.save(os.path.join(directory, BULK))
 
-    config = model.additional_config if hasattr(model, "additional_config") else {}
-    with open(os.path.join(directory, CONFIG), "wb") as out:
-        out.write(json.dumps(config))
+    meta = model.metadata if hasattr(model, "metadata") else {}
+    with open(os.path.join(directory, METADATA), "wb") as out:
+        out.write(json.dumps(meta))
 
 
 def load_model(directory):
     from keras.models import load_model as keras_load_model
     model = keras_load_model(os.path.join(directory, BULK))
-    with open(os.path.join(directory, CONFIG), "rb") as conf:
-        config = json.load(conf)
+    with open(os.path.join(directory, METADATA), "rb") as conf:
+        meta = json.load(conf)
     
-    model.additional_config = config
+    model.metadata = meta
     return model
 
 
