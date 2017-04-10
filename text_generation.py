@@ -174,8 +174,9 @@ def train_lstm(model, input_path, validation_path, save_dir, step=3, batch_size=
         hist = model.fit_generator(
             train_gen,
             validation_data=val_gen,
-            nb_val_samples=val_samples,
-            samples_per_epoch=samples, nb_epoch=1)
+            validation_steps=val_samples // batch_size,
+            steps_per_epoch=samples // batch_size,
+            epochs=1)
 
         val_loss = hist.history.get('val_loss', [-1])[0]
         loss = hist.history['loss'][0]
