@@ -10,7 +10,6 @@ from keras.models import Sequential
 from text_encoding import char2vec, n_chars
 
 
-
 def chars_from_files(list_of_files):
     while True:
         filename = choice(list_of_files)
@@ -66,11 +65,11 @@ def generate_batches(files_a, jump_size_a, files_b, jump_size_b, batch_size, sam
 
 def main(model_path, dir_a, dir_b, min_jump_size_a, max_jump_size_a,
          min_jump_size_b, max_jump_size_b, seq_len, batch_size, rnn_size, lstm_layers, dropout_rate,
-         steps_per_epoch, val_steps, epochs):
+         bidirectional, steps_per_epoch, val_steps, epochs):
         train_a = glob(os.path.join(dir_a, "train/*"))
-        val_a = glob(os.path.join(dir_b, "test/*"))
+        # val_a = glob(os.path.join(dir_b, "test/*"))
         train_b = glob(os.path.join(dir_b, "train/*"))
-        val_b = glob(os.path.join(dir_b, "test/*"))
+        # val_b = glob(os.path.join(dir_b, "test/*"))
 
         juma = [min_jump_size_a, max_jump_size_a]
         jumb = [min_jump_size_b, max_jump_size_b]
@@ -78,20 +77,29 @@ def main(model_path, dir_a, dir_b, min_jump_size_a, max_jump_size_a,
 
         model = Sequential()
         for _ in range(lstm_layers):
-            model.add(
-                LSTM(rnn_size, return_sequences=True, batch_input_shape=batch_shape, stateful=True))
+            if bidirectional:
+                model.add(LSTM(rnn_size, return_sequences=True, batch_input_shape=batch_shape))
+                model.add(LSTM(rnn_size, return_sequences=True, batch_input_shape=batch_shape,
+                               go_backwards=True))
+            else:
+                model.add(LSTM(rnn_size, return_sequences=True, batch_input_shape=batch_shape,
+                               stateful=True))
+
             model.add(Dropout(dropout_rate))
 
         model.add(TimeDistributed(Dense(units=1, activation='sigmoid')))
         model.compile(optimizer='adam', loss='mse', metrics=['accuracy', 'binary_crossentropy'])
 
         train_gen = generate_batches(train_a, juma, train_b, jumb, batch_size, seq_len)
-        validation_gen = generate_batches(val_a, juma, val_b, jumb, batch_size, seq_len)
+        # doesn't work anyway
+        # validation_gen = generate_batches(val_a, juma, val_b, jumb, batch_size, seq_len)
         checkpointer = ModelCheckpoint(model_path)
-        model.fit_generator(train_gen, validation_data=validation_gen,
-                            steps_per_epoch=steps_per_epoch,
-                            validation_steps=val_steps, epochs=epochs,
-                            callbacks=[checkpointer])
+        for _ in range(epochs):
+            model.fit_generator(train_gen,
+                                steps_per_epoch=steps_per_epoch,
+                                epochs=epochs,
+                                callbacks=[checkpointer])
+            model.reset_states()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("train tagger and save trained model")
@@ -118,6 +126,9 @@ if __name__ == '__main__':
     parser.add_argument("--dropout_rate", type=int, default=0.2, help="dropout rate for a "
                                                                       "droupout layer inserted "
                                                                       "after every LSTM layer")
+    parser.add_argument("--bidirectional", action="store_true",
+                        help="Whether to use bidirectional LSTM. If true, inserts a backwards LSTM"
+                        " layer after every normal layer.")
     parser.add_argument("--steps_per_epoch", type=int, default=1000)
     parser.add_argument("--validation_steps", type=int, default=100)
     parser.add_argument("--epochs", type=int, default=1000)

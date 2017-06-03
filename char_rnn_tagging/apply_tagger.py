@@ -4,26 +4,11 @@ from glob import glob
 import matplotlib
 import numpy as np
 from keras.models import load_model
+from joblib import dump
+
 from train import generate_batches
 
 
-
-def prediction_to_html(text, predictions, labels, cmap='Reds'):
-    cmap = matplotlib.cm.get_cmap(cmap)
-    html_chars = []
-    for c, p, l in zip(text, predictions, labels):
-        if c == '\n':
-            html_chars.append('<br>')
-        else:
-            r, g, b, a = cmap(p)
-            r, g, b = int(256*r), int(256*g), int(256*b)
-            if l:
-                c = '<font face="Times New Roman" size="5">%s</font>' % c
-            else:
-                c = '<font face="monospace" size="3">%s</font>' % c
-            html_chars.append('<span style="background-color:rgb(%s, %s, %s); color:black;">%s</span>' % (r, g, b, c))
-    tot_html = "".join(html_chars)
-    return tot_html
 
 
 def get_batches_and_text(files_a, jump_size_a, files_b, jump_size_b, batch_size, sample_len, n):
@@ -42,8 +27,8 @@ def get_batches_and_text(files_a, jump_size_a, files_b, jump_size_b, batch_size,
 def main(model_path, output_path, dir_a, dir_b, min_jump_a, max_jump_a, min_jump_b, max_jump_b,
          steps):
     model = load_model(model_path)
-    fa = glob(os.path.join(dir_a, "*"))
-    fb = glob(os.path.join(dir_b, "*"))
+    fa = glob(os.path.join(dir_a, "test/*"))
+    fb = glob(os.path.join(dir_b, "test/*"))
     juma = [min_jump_a, max_jump_a]
     jumb = [min_jump_b, max_jump_b]
     batch_size, seq_len, n_chars = model.input_shape
@@ -56,14 +41,13 @@ def main(model_path, output_path, dir_a, dir_b, min_jump_a, max_jump_a, min_jump
         pass
     for i in range(batch_size):
         preds = np.vstack([predictions[j::batch_size, :].ravel() for j in range(batch_size)])
-        path = os.path.join(output_path, 'part_' + str(i).zfill(5) + ".html")
-        print 'doing %s' % i, path
-        with open(path, "wb") as f:
-            f.write(prediction_to_html(texts[i], preds[i], labels[i]))
+        path = os.path.join(output_path, 'part_' + str(i).zfill(5) + ".joblib")
+        dump((texts[i], preds[i], labels[i]), path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Make predictions with a trained tagger")
     parser.add_argument("model_path", help="path to trained model")
+    parser.add_argument("output_dir", help="where to put predictions")
     parser.add_argument("dir_a", help="directory with first set of input files (it should contain "
                                       "'test' subdirectory")
     parser.add_argument("dir_b", help="directory with the second set of input files (it shouold "
@@ -79,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("--steps", type=int, default=50, help="how many batches to predict")
     args = parser.parse_args()
 
-    main(args.model_path, args.output_path, args.dir_a, args.dir_b, args.min_jump_a,
+    main(args.model_path, args.output_dir, args.dir_a, args.dir_b, args.min_jump_a,
          args.max_jump_a, args.min_jump_b, args.max_jump_b, args.steps)
 
 

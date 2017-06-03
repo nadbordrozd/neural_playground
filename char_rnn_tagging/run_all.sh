@@ -10,4 +10,5 @@ python train_test_split.py data/austen_clean/ 0.2
 python train_test_split.py data/sklearn_clean/ 0.2
 
 python train.py models/model_1 data/sklearn_clean/ data/austen_clean
-python apply_tagger.py models_model_1 data/sklearn_clean/ data/austen_clean
+python apply_tagger.py models/model_1 output/austen_sklearn_pr data/sklearn_clean/ data/austen_clean
+python plot_predictions.py output/austen_sklearn_pr output/austen_sklearn_html
