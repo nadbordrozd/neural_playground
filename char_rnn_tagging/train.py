@@ -148,6 +148,7 @@ if __name__ == '__main__':
         args.rnn_size,
         args.lstm_layers,
         args.dropout_rate,
+        args.bidirectional,
         args.steps_per_epoch,
         args.validation_steps,
         args.epochs)
