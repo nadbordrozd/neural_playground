@@ -17,9 +17,9 @@ def prediction_to_html(text, predictions, labels, cmap='Reds'):
             r, g, b, a = cmap(p)
             r, g, b = int(256*r), int(256*g), int(256*b)
             if l:
-                c = '<font face="Times New Roman" size="5">%s</font>' % c
+                c = '<font face="Times New Roman" \nsize="5">%s</font>' % c
             else:
-                c = '<font face="monospace" size="3">%s</font>' % c
+                c = '<font face="monospace" \nsize="3">%s</font>' % c
             html_chars.append('<span style="background-color:rgb(%s, %s, %s); color:black;">%s</span>' % (r, g, b, c))
     tot_html = "".join(html_chars)
     return tot_html
