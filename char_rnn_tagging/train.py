@@ -5,8 +5,8 @@ from glob import glob
 from random import choice
 import numpy as np
 from keras.callbacks import ModelCheckpoint
-from keras.layers import Dense, Dropout, LSTM, TimeDistributed
-from keras.models import Sequential
+from keras.layers import Dense, Dropout, LSTM, TimeDistributed, Bidirectional
+from keras.models import Sequential, load_model
 from text_encoding import char2vec, n_chars
 
 
@@ -72,21 +72,23 @@ def main(model_path, dir_a, dir_b, min_jump_size_a, max_jump_size_a,
         juma = [min_jump_size_a, max_jump_size_a]
         jumb = [min_jump_size_b, max_jump_size_b]
         batch_shape = (batch_size, seq_len, n_chars)
-        from keras.layers import Bidirectional
-        model = Sequential()
-        for _ in range(lstm_layers):
-            if bidirectional:
-                model.add(Bidirectional(LSTM(rnn_size, return_sequences=True,
-                                             batch_input_shape=batch_shape, stateful=True),
-                                        batch_input_shape=batch_shape))
-            else:
-                model.add(LSTM(rnn_size, return_sequences=True, batch_input_shape=batch_shape,
-                               stateful=True))
+        if os.path.isfile(model_path):
+            model = load_model(model_path)
+            batch_size, seq_len, _ = model.input_shape
+        else:
+            model = Sequential()
+            for _ in range(lstm_layers):
+                if bidirectional:
+                    model.add(Bidirectional(LSTM(rnn_size, return_sequences=True),
+                                            batch_input_shape=batch_shape))
+                else:
+                    model.add(LSTM(rnn_size, return_sequences=True, batch_input_shape=batch_shape,
+                                   stateful=True))
 
-            model.add(Dropout(dropout_rate))
+                model.add(Dropout(dropout_rate))
 
-        model.add(TimeDistributed(Dense(units=1, activation='sigmoid')))
-        model.compile(optimizer='adam', loss='mse', metrics=['accuracy', 'binary_crossentropy'])
+            model.add(TimeDistributed(Dense(units=1, activation='sigmoid')))
+            model.compile(optimizer='adam', loss='mse', metrics=['accuracy', 'binary_crossentropy'])
 
         train_gen = generate_batches(train_a, juma, train_b, jumb, batch_size, seq_len)
         # doesn't work anyway
@@ -101,7 +103,10 @@ def main(model_path, dir_a, dir_b, min_jump_size_a, max_jump_size_a,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("train tagger and save trained model")
-    parser.add_argument("model_path", help="where to put trained model")
+    parser.add_argument("model_path", help=
+        "Path where to save trained model. If this path exists, a model will be loaded from it. "
+        "Otherwise a new one will be constructed. The model will be saved to this path after "
+        "every epoch.")
     parser.add_argument("dir_a", help="directory with first source of input files. It should "
                                       "contain 'train' and 'test' subdirectories that contain "
                                       "actual files")
