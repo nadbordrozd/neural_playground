@@ -65,22 +65,20 @@ def generate_batches(files_a, jump_size_a, files_b, jump_size_b, batch_size, sam
 
 def main(model_path, dir_a, dir_b, min_jump_size_a, max_jump_size_a,
          min_jump_size_b, max_jump_size_b, seq_len, batch_size, rnn_size, lstm_layers, dropout_rate,
-         bidirectional, steps_per_epoch, val_steps, epochs):
+         bidirectional, steps_per_epoch, epochs):
         train_a = glob(os.path.join(dir_a, "train/*"))
-        # val_a = glob(os.path.join(dir_b, "test/*"))
         train_b = glob(os.path.join(dir_b, "train/*"))
-        # val_b = glob(os.path.join(dir_b, "test/*"))
 
         juma = [min_jump_size_a, max_jump_size_a]
         jumb = [min_jump_size_b, max_jump_size_b]
         batch_shape = (batch_size, seq_len, n_chars)
-
+        from keras.layers import Bidirectional
         model = Sequential()
         for _ in range(lstm_layers):
             if bidirectional:
-                model.add(LSTM(rnn_size, return_sequences=True, batch_input_shape=batch_shape))
-                model.add(LSTM(rnn_size, return_sequences=True, batch_input_shape=batch_shape,
-                               go_backwards=True))
+                model.add(Bidirectional(LSTM(rnn_size, return_sequences=True,
+                                             batch_input_shape=batch_shape, stateful=True),
+                                        batch_input_shape=batch_shape))
             else:
                 model.add(LSTM(rnn_size, return_sequences=True, batch_input_shape=batch_shape,
                                stateful=True))
@@ -130,7 +128,6 @@ if __name__ == '__main__':
                         help="Whether to use bidirectional LSTM. If true, inserts a backwards LSTM"
                         " layer after every normal layer.")
     parser.add_argument("--steps_per_epoch", type=int, default=1000)
-    parser.add_argument("--validation_steps", type=int, default=100)
     parser.add_argument("--epochs", type=int, default=1000)
 
     args = parser.parse_args()
@@ -150,5 +147,4 @@ if __name__ == '__main__':
         args.dropout_rate,
         args.bidirectional,
         args.steps_per_epoch,
-        args.validation_steps,
         args.epochs)
