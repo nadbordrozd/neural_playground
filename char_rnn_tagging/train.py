@@ -94,12 +94,12 @@ def main(model_path, dir_a, dir_b, min_jump_size_a, max_jump_size_a,
         # doesn't work anyway
         # validation_gen = generate_batches(val_a, juma, val_b, jumb, batch_size, seq_len)
         checkpointer = ModelCheckpoint(model_path)
-        for _ in range(epochs):
-            model.fit_generator(train_gen,
-                                steps_per_epoch=steps_per_epoch,
-                                epochs=epochs,
-                                callbacks=[checkpointer])
-            model.reset_states()
+
+        model.fit_generator(train_gen,
+                            steps_per_epoch=steps_per_epoch,
+                            epochs=epochs,
+                            callbacks=[checkpointer])
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("train tagger and save trained model")
